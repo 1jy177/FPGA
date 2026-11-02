@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "http_status": 200,
+  "layers": 16,
+  "display_lod": true,
+  "profile": "digimouse",
+  "anatomical_presets": true,
+  "rotation_zoom_pan_reset": true,
+  "visibility_opacity_solo": true,
+  "clip_xyz_flip": true,
+  "javascript_errors": [],
+  "browser": "131.0.6778.85",
+  "rendering": "headless Chrome SwiftShader; not a board speed measurement"
+}

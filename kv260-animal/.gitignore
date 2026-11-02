@@ -1,0 +1,26 @@
+/build
+/hardware/project
+work/
+original/
+*.log
+*.jou
+.Xil/
+/data
+/preview
+/storage
+output/
+/dist
+overlays/*.bit
+overlays/*.hwh
+overlays/manifest.json
+*.so
+__pycache__/
+# 构建产物（不入库）
+hardware/vivado/vivado.log
+hardware/vivado/vivado.jou
+hardware/vivado/vivado_*.backup.log
+hardware/vivado/vivado_*.backup.jou
+hardware/vivado/vivado_pid*.str
+hardware/hls/vitis_hls.log
+output_check/
+*.pyc

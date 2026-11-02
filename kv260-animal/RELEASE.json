@@ -1,0 +1,13 @@
+{
+  "version": "2.0-digimouse",
+  "board": "KV260",
+  "profile": "digimouse",
+  "layers": 16,
+  "board_tested": false,
+  "data_license": "CC BY-SA 4.0",
+  "complete_vivado_project": true,
+  "preview_backend": "cpu",
+  "bitstream_clock_mhz": 200,
+  "engines": 2,
+  "scan_ii": 1
+}

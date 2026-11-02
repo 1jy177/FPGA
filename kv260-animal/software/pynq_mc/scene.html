@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KV260 · 完整动物 CT 重建</title>
+<style>
+:root{color-scheme:dark;
+ --muted:#95a9c3;--faint:#7e93ad;--accent:#7ff0d8;--accent2:#9ec5ff;
+ --line:rgba(255,255,255,.075);--line2:rgba(255,255,255,.16);
+ --panel:rgba(9,16,27,.74);--chip:rgba(255,255,255,.045)}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;overflow:hidden;color:#e9eef6;font:14px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+ background:radial-gradient(125% 92% at 70% 28%,#22344f 0%,#121d2e 40%,#060b13 100%)}
+body:before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+ background:radial-gradient(48% 44% at 61% 41%,rgba(120,205,225,.14),transparent 72%)}
+body:after{content:'';position:fixed;inset:0;pointer-events:none;z-index:2;
+ background:radial-gradient(72% 64% at 50% 46%,transparent 42%,rgba(0,0,0,.58) 100%)}
+canvas{position:relative;z-index:1;display:block;width:100vw;height:100vh;touch-action:none;outline:none}
+aside{position:fixed;left:22px;top:22px;bottom:22px;width:310px;z-index:5;
+ display:flex;flex-direction:column;background:var(--panel);backdrop-filter:blur(24px) saturate(145%);
+ border:1px solid var(--line);border-radius:22px;padding:22px 20px;overflow:auto;
+ box-shadow:0 34px 90px -34px #000,inset 0 1px 0 rgba(255,255,255,.07);
+ transition:transform .6s cubic-bezier(.22,.9,.2,1),opacity .45s}
+aside::-webkit-scrollbar{width:6px}aside::-webkit-scrollbar-thumb{background:#ffffff1f;border-radius:3px}
+body.demo aside{transform:translateX(calc(-100% - 34px));opacity:0;pointer-events:none}
+.brand{display:flex;flex-direction:column;gap:9px}
+.brandtop{display:flex;align-items:center;gap:9px;color:var(--accent)}
+.brandmark{flex:none;filter:drop-shadow(0 0 7px rgba(127,240,216,.45))}
+.brand small{font-size:9.5px;letter-spacing:3px;color:var(--accent);text-transform:uppercase}
+h1{font-size:20px;line-height:1.32;font-weight:640;letter-spacing:-.45px;margin:11px 0 15px}
+h2{display:flex;align-items:center;gap:9px;font-size:9.5px;letter-spacing:2.4px;text-transform:uppercase;
+ color:var(--faint);margin:22px 0 10px;font-weight:650}
+h2:before{content:'';height:1px;width:15px;background:var(--line2);flex:none}
+p{color:var(--muted);font-size:12px;margin:8px 0}
+.pill{align-self:flex-start;border:1px solid rgba(127,240,216,.3);color:var(--accent);
+ border-radius:999px;padding:4px 11px;font-size:10.5px;letter-spacing:.5px;background:rgba(127,240,216,.08)}
+select{color-scheme:dark}
+select option{background:#0d1520;color:#e6eefb}
+button,a,select{font:inherit;color:#dfe8f4;background:var(--chip);border:1px solid var(--line);
+ border-radius:10px;padding:8px 10px;cursor:pointer;transition:background .18s,border-color .18s,color .18s,box-shadow .18s,transform .12s;
+ text-decoration:none}
+button:hover,select:hover,a:hover{background:rgba(127,240,216,.13);border-color:rgba(127,240,216,.44);color:#fff}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.28;cursor:default;transform:none}
+button.primary{margin-top:2px;background:linear-gradient(135deg,rgba(127,240,216,.24),rgba(158,197,255,.15));
+ border-color:rgba(127,240,216,.52);color:#ebfffa;font-weight:640;letter-spacing:.4px;padding:11px 12px}
+button.primary:hover{box-shadow:0 0 0 1px rgba(127,240,216,.5),0 10px 30px -12px rgba(127,240,216,.75)}
+nav{display:grid;grid-template-columns:1fr 1fr;gap:6px}nav button{font-size:11.5px}
+nav button#reset{grid-column:span 2}
+.row{display:flex;align-items:center;gap:9px;padding:2px 0}
+.row span{flex:1;font-size:12px;color:#cfdaea}
+.row button{font-size:9.5px;padding:2px 7px;border-radius:7px}
+.swatch{width:8px;height:8px;border-radius:50%;box-shadow:0 0 9px currentColor;flex:none}
+section{border-top:1px solid var(--line);padding:9px 0 3px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer;margin:4px 0}
+input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:linear-gradient(90deg,rgba(127,240,216,.8),rgba(158,197,255,.34))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;margin-top:-5px;border-radius:50%;
+ background:#eafff9;box-shadow:0 0 0 3px rgba(127,240,216,.2),0 2px 8px #000}
+input[type=range]::-moz-range-track{height:3px;border-radius:3px;background:rgba(127,240,216,.6)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border:0;border-radius:50%;background:#eafff9}
+input[type=checkbox]{accent-color:var(--accent)}
+.controls{display:flex;gap:6px;align-items:center;font-size:11px}
+.controls select{font-size:11.5px;padding:6px 8px;flex:1;border-radius:8px;background:#0f1826;border-color:var(--line2);color:#e6eefb}
+.help{border-top:1px solid var(--line);padding-top:15px;margin-top:16px}
+.hint{color:#8497b2;font-size:10.5px;line-height:1.7;margin-top:6px}
+#source,#license{font-size:11px}
+#error{color:#ffb0a2;white-space:pre-wrap;font-size:11px}
+.hud{position:fixed;right:26px;top:24px;z-index:4;display:flex;gap:9px;pointer-events:none}
+.hud .card{background:var(--panel);backdrop-filter:blur(18px);border:1px solid var(--line);
+ border-radius:13px;padding:8px 13px;min-width:82px;box-shadow:0 16px 40px -24px #000}
+.hud .k{display:flex;align-items:center;gap:5px;font-size:8.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);margin-bottom:2px;white-space:nowrap}
+.hud .k i{width:5px;height:5px;border-radius:50%;background:#3c4b5e;flex:none}
+.hud .card.live .k i{background:var(--accent);box-shadow:0 0 7px rgba(127,240,216,.85);animation:blink 1.8s infinite alternate}
+@keyframes blink{to{opacity:.3}}
+.hud .v{font-variant-numeric:tabular-nums;font-size:16px;font-weight:640;color:#eff6ff;letter-spacing:-.3px;line-height:1.25}
+.hud .v em{font-style:normal;font-size:9.5px;color:var(--muted);margin-left:3px;font-weight:500}
+.hud .card.live{position:relative}
+.hud .card.wide{min-width:96px}
+.hud .card.wide .v{white-space:nowrap}
+.hud .v.sub{font-size:10.5px;font-weight:520;color:#c3d5e8;letter-spacing:.2px}
+.captions{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);z-index:4;
+ display:flex;justify-content:center;pointer-events:none;opacity:0;transition:opacity .6s;max-width:min(88vw,860px)}
+body.demo .captions{opacity:1}
+.captions .line{background:rgba(8,14,24,.66);backdrop-filter:blur(16px);border:1px solid var(--line);
+ border-radius:999px;padding:10px 22px;font-size:13px;color:#e2ecf8;letter-spacing:.2px;text-align:center;
+ box-shadow:0 14px 38px -18px #000;transition:opacity .26s}
+.captions .line b{color:var(--accent);font-weight:640}
+.demoExit{position:fixed;left:26px;top:26px;z-index:6;display:flex;align-items:center;gap:11px;
+ opacity:0;pointer-events:none;transition:opacity .45s}
+body.demo .demoExit{opacity:1;pointer-events:auto}
+.demoExit span{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint)}
+footer{position:fixed;right:26px;bottom:22px;z-index:3;max-width:calc(100% - 390px);text-align:right;
+ color:#9db1cb;font-size:11px;line-height:1.85;pointer-events:none;white-space:pre-line;transition:opacity .4s}
+body.demo footer{opacity:0}
+#loading{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;
+ display:flex;align-items:center;gap:12px;padding:20px 26px;background:var(--panel);
+ border:1px solid var(--line);border-radius:16px;font-size:13px;backdrop-filter:blur(20px)}
+#loading:before{content:'';width:9px;height:9px;border-radius:50%;background:var(--accent);
+ box-shadow:0 0 14px var(--accent);animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.14;transform:scale(.68)}}
+#toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,14px);z-index:7;
+ background:rgba(8,14,24,.88);border:1px solid rgba(127,240,216,.36);color:#d9f8f0;
+ padding:10px 19px;border-radius:12px;font-size:12px;opacity:0;pointer-events:none;
+ transition:opacity .3s,transform .3s;backdrop-filter:blur(14px);box-shadow:0 18px 44px -20px #000}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:760px){
+ aside{width:min(80vw,272px);left:10px;top:10px;bottom:10px;padding:16px 14px;border-radius:18px}
+ h1{font-size:17px}.hud{right:10px;top:10px;gap:6px}.hud .card{padding:6px 9px;min-width:64px}
+ .hud .v{font-size:12.5px}.hud .card.wide{display:none}footer{display:none}
+ .captions .line{font-size:11px;padding:8px 15px}.demoExit{left:12px;top:12px}
+}
+</style>
+<canvas id="view" tabindex="0" aria-label="可鼠标旋转、缩放和平移的三维 CT 模型"></canvas>
+<div class="hud">
+ <div class="card"><div class="k"><i></i>图层</div><div class="v" id="statOrgans">—</div></div>
+ <div class="card"><div class="k"><i></i>完整三角面</div><div class="v" id="statFull">—</div></div>
+ <div class="card live"><div class="k"><i></i>显示面数</div><div class="v" id="statTris">—</div></div>
+ <div class="card live"><div class="k"><i></i>阈值重建</div><div class="v" id="statIso">—</div></div>
+ <div class="card wide"><div class="k"><i></i>后端</div><div class="v sub" id="backend">…</div></div>
+</div>
+<div class="captions"><div class="line" id="captionLine"></div></div>
+<div class="demoExit"><span>演示模式 · Esc 退出</span><button id="demoExit">退出</button></div>
+<aside>
+ <div class="brand"><div class="brandtop"><svg class="brandmark" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".5"/><circle cx="12" cy="12" r="3" fill="currentColor" opacity=".92"/><path d="M12 1.6v3.1M12 19.3v3.1M1.6 12h3.1M19.3 12h3.1" stroke="currentColor" stroke-width="1.1" opacity=".55"/></svg><small>KV260 / VOLUME LAB</small></div><div class="pill" id="profile">正在读取场景</div></div>
+ <h1>完整动物 CT 重建</h1>
+ <button class="primary" id="demo">▶&nbsp;&nbsp;演示模式 · 自动环绕</button>
+ <h2>显示模式</h2><nav><button id="exterior">完整外形</button><button id="internal">分色内脏</button><button id="skeleton">全身骨骼</button><button id="combined">透明解剖</button><button id="reset">重置视角</button></nav>
+ <h2>图层 / 透明度</h2><div id="layers"></div>
+ <h2>等值面阈值 · FPGA 实时重建</h2><div class="controls"><select id="isoLayer" aria-label="要重算的器官"></select><span id="isoVal" style="min-width:56px;text-align:right;color:var(--accent);font-variant-numeric:tabular-nums"></span></div><input id="iso" type="range" min="0" max="65535" step="1" value="32768" aria-label="等值面阈值"><div class="hint" id="isoStatus">阈值是 kernel 的运行时参数（寄存器 0x50），改它不需要重新编译电路。松手后只重算选中的这一个器官。</div>
+ <h2>着色方式</h2><div class="controls"><label><input id="flat" type="checkbox">平面着色（显折角）</label></div><div class="hint">平面着色按每个三角面的法线计算明暗，能看见网格离散化产生的台阶；平滑着色按顶点平均法线，更接近实际观感。</div>
+ <h2>交互剖切</h2><div class="controls"><label><input id="clip" type="checkbox">启用</label><select id="axis" aria-label="剖切方向"><option value="0">X 方向</option><option value="1">Y 方向</option><option value="2" selected>Z 方向</option></select><label><input id="flip" type="checkbox">反向</label></div><input id="cut" type="range" min="0" max="1" step=".002" value=".5" aria-label="剖切位置"><div class="hint">剖切不封口；查看内部请选内部结构图层。</div>
+ <h2>标准视角</h2><nav><button id="front">正视</button><button id="side">侧视</button></nav>
+ <p id="source"></p><p id="license"></p>
+ <div class="help"><p>左键拖动旋转 · 滚轮缩放<br>右键 / Shift 拖动平移 · R 复位 · D 演示模式</p><p class="hint">图形由浏览器本地绘制，透明度使用近似混合。建模、显示与硬件验证状态分别记录。</p></div>
+ <p id="error"></p>
+</aside>
+<div id="loading">正在加载真实 CT 重建模型</div>
+<div id="toast"></div>
+<footer id="info"></footer>
+<script>
+'use strict';
+(async()=>{
+const $=id=>document.getElementById(id),canvas=$('view');
+const gl=canvas.getContext('webgl',{antialias:true,alpha:true,preserveDrawingBuffer:true});
+if(!gl)throw Error('需要支持 WebGL 的浏览器');
+if(!gl.getExtension('OES_element_index_uint'))throw Error('需要支持 32 位网格索引的 WebGL 浏览器');
+// 平面着色需要片元着色器里的导数函数；不支持时自动退回平滑着色
+const hasDeriv=!!gl.getExtension('OES_standard_derivatives');
+const fsExt=hasDeriv?'#extension GL_OES_standard_derivatives : enable\n':'';
+const response=await fetch('scene.json');if(!response.ok)throw Error('请通过本地 HTTP 服务打开，而非 file://');
+const scene=await response.json(),layers=[];
+document.title='KV260 · '+scene.title;document.querySelector('h1').textContent=scene.profile==='digimouse'?'小鼠全身解剖':scene.title;
+$('profile').textContent=scene.profile_label||(scene.profile==='native'?'原采样网格 · 2.5 μm':'完整扫描范围 · 5 μm');
+$('source').textContent=scene.note;
+const source=document.createElement('a');source.href=scene.source.url;source.target='_blank';source.rel='noopener';source.textContent='数据：'+(scene.profile==='digimouse'?'USC Digimouse':'Brian Metscher')+' · '+scene.source.license;source.style.cssText='border:0;padding:0;background:none;font-size:11px;color:#93d6cb';$('license').append(source);
+$('backend').textContent=scene.backend==='pynq'?'PYNQ · PL 实测':'CPU 参考（非板端）';
+// 浏览器不支持导数扩展时，禁用平面着色开关，避免给出无效选项
+if(!hasDeriv){const el=$('flat');el.disabled=true;el.checked=false;el.parentElement.title='当前浏览器不支持平面着色（缺少 OES_standard_derivatives）';}
+const vs=`attribute vec3 p;attribute vec3 n;uniform vec2 angles;uniform vec2 pan;uniform vec3 center;uniform float scale;uniform float aspect;varying vec3 normal;varying vec3 world;varying vec3 vpos;
+vec3 rot(vec3 q){q=vec3(q.x,-q.y,-q.z);float a=angles.x,b=angles.y;vec3 v=vec3(cos(a)*q.x+sin(a)*q.z,q.y,-sin(a)*q.x+cos(a)*q.z);return vec3(v.x,cos(b)*v.y-sin(b)*v.z,sin(b)*v.y+cos(b)*v.z);}
+void main(){vec3 q=rot((p-center)*scale);normal=rot(n);world=p;vpos=q;gl_Position=vec4((q.x+pan.x)/aspect,q.y+pan.y,-q.z*.22,1.0);}`;
+const flatN=hasDeriv
+ ?'if(uFlatMode>.5){n=normalize(cross(dFdx(vpos),dFdy(vpos)));if(!gl_FrontFacing)n=-n;}else{n=normalize(normal);if(!gl_FrontFacing)n=-n;}'
+ :'n=normalize(normal);if(!gl_FrontFacing)n=-n;';
+const fs=fsExt+`precision highp float;varying vec3 normal;varying vec3 world;varying vec3 vpos;uniform vec3 color;uniform float opacity;uniform vec4 plane;uniform float clipping;uniform float uFlatMode;
+void main(){if(clipping>.5&&dot(world,plane.xyz)>plane.w)discard;
+vec3 n;`+flatN+`
+float key=max(dot(n,normalize(vec3(-.5,.7,1.))),0.);float fill=max(dot(n,normalize(vec3(.9,-.1,.3))),0.);float rim=pow(1.-abs(n.z),3.);float spec=pow(max(dot(n,normalize(vec3(-.25,.4,1.))),0.),52.);vec3 c=color*(.22+.70*key+.18*fill)+vec3(.72,.84,1.)*rim*.15+vec3(1.,.9,.8)*spec*.19;c=pow(c,vec3(.88));gl_FragColor=vec4(c,opacity);}`;
+function shader(type,code){const s=gl.createShader(type);gl.shaderSource(s,code);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
+const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
+const u={};for(const name of ['angles','pan','center','scale','aspect','color','opacity','plane','clipping','uFlatMode'])u[name]=gl.getUniformLocation(program,name);
+const ap=gl.getAttribLocation(program,'p'),an=gl.getAttribLocation(program,'n');
+function buffer(data,target=gl.ARRAY_BUFFER){const b=gl.createBuffer();gl.bindBuffer(target,b);gl.bufferData(target,data,gl.STATIC_DRAW);return b;}
+function geometry(data,vertices,triangles){
+ const p=new Float32Array(data,0,vertices*3),f=new Uint32Array(data,vertices*12,triangles*3),n=new Float32Array(p.length);
+ for(let i=0;i<f.length;i+=3){const a=f[i]*3,b=f[i+1]*3,c=f[i+2]*3;if(Math.max(a,b,c)>=p.length)throw Error('网格索引越界');const ux=p[b]-p[a],uy=p[b+1]-p[a+1],uz=p[b+2]-p[a+2],vx=p[c]-p[a],vy=p[c+1]-p[a+1],vz=p[c+2]-p[a+2];const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;for(const j of [a,b,c]){n[j]+=nx;n[j+1]+=ny;n[j+2]+=nz;}}
+ for(let i=0;i<n.length;i+=3){const r=Math.hypot(n[i],n[i+1],n[i+2])||1;n[i]/=r;n[i+1]/=r;n[i+2]/=r;}
+ return {p:buffer(p),n:buffer(n),f:buffer(f,gl.ELEMENT_ARRAY_BUFFER)};
+}
+for(const meta of scene.layers){
+ $('loading').textContent='读取 '+meta.label;
+ if(meta.triangles>6000000)throw Error('完整网格过大，请先用 make_display.py 生成显示 LOD。完整精度结果无需减面。');
+ const r=await fetch(meta.file);if(!r.ok)throw Error('加载失败 '+meta.label);const data=await r.arrayBuffer();
+ if(data.byteLength!==12*(meta.vertices+meta.triangles))throw Error('模型长度异常 '+meta.label);
+ if(crypto.subtle){const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data)),b=>b.toString(16).padStart(2,'0')).join('');if(hash!==meta.sha256)throw Error('模型 SHA256 不匹配 '+meta.label);}
+ const g=geometry(data,meta.vertices,meta.triangles);
+ layers.push({...meta,visible:meta.id==='body',rgb:[1,3,5].map(i=>parseInt(meta.color.slice(i,i+2),16)/255),...g});
+}
+const initialYaw=scene.camera?.yaw??1.45,initialPitch=scene.camera?.pitch??.06;
+let yaw=initialYaw,pitch=initialPitch,zoom=1,pan=[.34,0],center=[],size=1,lo=[],hi=[],drag=null;
+function fit(selected=layers){lo=[Infinity,Infinity,Infinity];hi=[-Infinity,-Infinity,-Infinity];for(const l of selected)for(let j=0;j<3;j++){lo[j]=Math.min(lo[j],l.bounds[0][j]);hi[j]=Math.max(hi[j],l.bounds[1][j]);}center=lo.map((v,j)=>(v+hi[j])/2);size=Math.max(...hi.map((v,j)=>v-lo[j]),1e-8);zoom=1;pan=[innerWidth>700?.34:.30,0];}
+function render(l){gl.bindBuffer(gl.ARRAY_BUFFER,l.p);gl.enableVertexAttribArray(ap);gl.vertexAttribPointer(ap,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,l.n);gl.enableVertexAttribArray(an);gl.vertexAttribPointer(an,3,gl.FLOAT,false,0,0);gl.uniform3fv(u.color,l.rgb);gl.uniform1f(u.opacity,l.opacity);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,l.f);gl.drawElements(gl.TRIANGLES,l.triangles*3,gl.UNSIGNED_INT,0);}
+function draw(){const dpr=Math.min(devicePixelRatio||1,2),w=Math.round(innerWidth*dpr),h=Math.round(innerHeight*dpr);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}gl.viewport(0,0,w,h);gl.clearColor(0,0,0,0);gl.depthMask(true);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);gl.uniform2f(u.angles,yaw,pitch);gl.uniform2fv(u.pan,pan);gl.uniform3fv(u.center,center);gl.uniform1f(u.scale,1.67*zoom/size);gl.uniform1f(u.aspect,w/h);
+ const axis=Number($('axis').value),sign=$('flip').checked?-1:1,plane=[0,0,0,0];plane[axis]=sign;plane[3]=sign*(lo[axis]+Number($('cut').value)*(hi[axis]-lo[axis]));gl.uniform4fv(u.plane,plane);gl.uniform1f(u.clipping,$('clip').checked?1:0);gl.uniform1f(u.uFlatMode,(hasDeriv&&$('flat').checked)?1:0);
+ const visible=layers.filter(l=>l.visible&&l.opacity>0);visible.filter(l=>l.opacity>=.999).forEach(render);const translucent=visible.filter(l=>l.opacity<.999);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.enable(gl.CULL_FACE);gl.cullFace(gl.FRONT);translucent.forEach(render);gl.cullFace(gl.BACK);translucent.forEach(render);gl.disable(gl.CULL_FACE);gl.depthMask(true);gl.disable(gl.BLEND);
+ const faces=visible.reduce((s,l)=>s+l.triangles,0),full=visible.reduce((s,l)=>s+(l.full||l).triangles,0);$('info').textContent=`${visible.length} / ${layers.length} 图层 · 完整 ${full.toLocaleString()} 面 · 显示 LOD ${faces.toLocaleString()} 面\n物理范围 ${hi.map((x,i)=>(x-lo[i]).toFixed(3)).join(' × ')} mm · ${scene.backend==='cpu'?'本机 CPU 参考模型':'KV260 PYNQ 重建模型 / 完整网格 SHA256 已核对'}`;
+ canvas.dataset.ready='true';canvas.dataset.visible=String(visible.length);canvas.dataset.view=JSON.stringify([yaw,pitch,zoom,...pan]);canvas.dataset.clip=String($('clip').checked);}
+function sync(){for(const l of layers){l.check.checked=l.visible;l.slider.value=l.opacity;}draw();}
+for(const l of layers){const section=document.createElement('section');section.dataset.tissue=l.id;const row=document.createElement('div');row.className='row';const check=document.createElement('input');check.type='checkbox';check.checked=l.visible;check.setAttribute('aria-label',l.label+'显隐');const swatch=document.createElement('i');swatch.className='swatch';swatch.style.background=l.color;const label=document.createElement('span');label.textContent=l.label;const solo=document.createElement('button');solo.textContent='独看';solo.onclick=()=>{layers.forEach(x=>x.visible=x===l);l.opacity=1;fit([l]);sync();};row.append(check,swatch,label,solo);const slider=document.createElement('input');slider.type='range';slider.min=0;slider.max=1;slider.step=.01;slider.value=l.opacity;slider.setAttribute('aria-label',l.label+'透明度');check.onchange=()=>{l.visible=check.checked;draw();};slider.oninput=()=>{l.opacity=Number(slider.value);draw();};section.append(row,slider);$('layers').append(section);l.check=check;l.slider=slider;}
+function preset(name){for(const l of layers){l.visible=name==='combined'||(name==='exterior'?l.id==='body':name==='skeleton'?l.id==='skeleton':l.id!=='body'&&l.id!=='skeleton');l.opacity=name==='combined'?(l.id==='body'?.10:l.id==='skeleton'?.40:1):1;}fit();sync();canvas.dataset.preset=name;}
+for(const id of ['exterior','internal','skeleton','combined'])$(id).onclick=()=>preset(id);
+// ---- 等值面阈值：调用板子上的 FPGA 只重算一个器官 ----
+const isoDefaults={};let isoBusy=false,isoTimer=null;
+for(const l of layers){const o=document.createElement('option');o.value=l.id;o.textContent=l.label;if(l.id==='heart')o.selected=true;$('isoLayer').append(o);}
+function isoOf(id){const l=layers.find(x=>x.id===id);return l&&l.iso!=null?l.iso:(isoDefaults[id]??32768);}
+function syncIso(){const v=isoOf($('isoLayer').value);$('iso').value=v;$('isoVal').textContent=v;}
+async function applyRebuild(l,e){
+ const stamp=String(e.sha256||'').slice(0,12);
+ const url=e.file+(e.file.includes('?')?'&':'?')+'v='+stamp;
+ const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('下载新网格失败 '+r.status);
+ const data=await r.arrayBuffer();
+ const want=12*(e.vertices+e.triangles);
+ if(data.byteLength!==want)throw Error('网格长度异常（收到 '+data.byteLength+' 字节，期望 '+want+'）—— 多为浏览器缓存了旧文件，请强制刷新');
+ if(crypto.subtle){const h=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data)),b=>b.toString(16).padStart(2,'0')).join('');if(h!==e.sha256)throw Error('网格 SHA256 不匹配');}
+ const g=geometry(data,e.vertices,e.triangles);
+ for(const k of ['p','n','f'])if(l[k])gl.deleteBuffer(l[k]);
+ Object.assign(l,g,{file:e.file,vertices:e.vertices,triangles:e.triangles,sha256:e.sha256,bounds:e.bounds,iso:e.iso});
+ refreshStats();
+ if(e.rebuild_ms!=null){
+  $('statIso').innerHTML=e.rebuild_ms+'<em>ms</em>';
+  $('statIso').title=(e.iso!=null?'阈值 '+e.iso+' · ':'')+(e.simplified?'显示用降采样':'完整网格直送');
+ }
+}
+async function doRebuild(){
+ if(isoBusy)return;
+ const id=$('isoLayer').value,iso=Number($('iso').value),l=layers.find(x=>x.id===id);
+ if(!l)return;
+ isoBusy=true;const t0=performance.now();
+ $('isoStatus').textContent='重建中… '+(l.label||id)+' @ '+iso;
+ try{
+  const r=await fetch('/api/rebuild',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({layer:id,iso:iso})});
+  const ct=r.headers.get('content-type')||'';
+  if(!ct.includes('application/json')){
+   throw Error('服务端没有 /api/rebuild 接口（返回的是 HTML）。请在板子上运行 bash scripts/serve_scene.sh，而不是 python3 -m http.server');
+  }
+  const j=await r.json();
+  if(!r.ok)throw Error(j.error||('HTTP '+r.status));
+  await applyRebuild(l,j);
+  const ms=Math.round(performance.now()-t0);
+  $('isoStatus').textContent=(l.label||id)+' 阈值 '+iso+' → '+j.vertices.toLocaleString()+' 顶点 / '+j.triangles.toLocaleString()+' 面 · 重建 '+j.rebuild_ms+' ms · 端到端 '+ms+' ms'+(j.simplified?'（显示用降采样）':'');
+  $('statIso').innerHTML=j.rebuild_ms+'<em>ms</em>';
+  $('statIso').title=(l.label||id)+' · 阈值 '+iso+' → '+j.triangles.toLocaleString()+' 面 · '+(j.simplified?'显示用降采样':'完整网格直送');
+  toast((l.label||id)+' · 阈值 '+iso+' → '+j.triangles.toLocaleString()+' 面 · '+j.rebuild_ms+' ms');
+  draw();
+ }catch(err){
+  $('isoStatus').textContent='阈值重建失败：'+err.message;toast('阈值重建失败：'+err.message);
+ }finally{isoBusy=false;}
+}
+$('iso').oninput=()=>{const v=Number($('iso').value);const l=layers.find(x=>x.id===$('isoLayer').value);if(l)l.iso=v;$('isoVal').textContent=v;};
+$('iso').onchange=()=>{clearTimeout(isoTimer);isoTimer=setTimeout(doRebuild,150);};
+$('isoLayer').onchange=()=>{syncIso();};
+syncIso();
+(async()=>{try{
+  const r=await fetch('/api/state');if(!r.ok)return;
+  const st=await r.json();Object.assign(isoDefaults,st.iso_default||{});syncIso();
+  const live=st.live||{};
+  for(const id in live){const l=layers.find(x=>x.id===id);if(!l)continue;
+    try{await applyRebuild(l,live[id]);l.iso=live[id].iso;draw();}catch(err){console.warn('恢复阈值网格失败',id,err);}}
+  if(Object.keys(live).length)syncIso();
+ }catch(e){
+  console.warn('阈值接口不可用（静态服务模式），滑块已禁用',e);
+  $('iso').disabled=true; $('isoLayer').disabled=true;
+  $('isoStatus').textContent='阈值重建已禁用：当前是普通静态服务，没有 /api 接口。'
+    +'请在板子上运行 bash scripts/serve_scene.sh 后刷新页面。';
+  if(typeof toast==='function')toast('阈值重建已禁用：当前服务缺少 /api 接口');
+ }
+})();
+if(!layers.some(l=>l.id!=='body')){for(const id of ['internal','combined']){$(id).disabled=true;$(id).title='此场景只提供体表。';}}
+if(!layers.some(l=>l.id==='skeleton'))$('skeleton').style.display='none';
+$('reset').onclick=()=>{yaw=initialYaw;pitch=initialPitch;$('clip').checked=false;fit();draw();};$('front').onclick=()=>{yaw=0;pitch=0;draw();};$('side').onclick=()=>{yaw=Math.PI/2;pitch=0;draw();};for(const id of ['clip','axis','flip','cut','flat'])$(id).oninput=draw;
+canvas.oncontextmenu=e=>e.preventDefault();canvas.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,pan:e.button===2||e.shiftKey};canvas.setPointerCapture(e.pointerId);};canvas.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(drag.pan){pan[0]+=dx/innerHeight*2;pan[1]-=dy/innerHeight*2;}else{yaw+=dx*.007;pitch+=dy*.007;}drag.x=e.clientX;drag.y=e.clientY;draw();};canvas.onpointerup=canvas.onpointercancel=()=>drag=null;canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.05,Math.min(20,zoom*Math.exp(-e.deltaY*.001)));draw();},{passive:false});window.onresize=draw;window.onkeydown=e=>{if(e.key.toLowerCase()==='r')$('reset').click();};
+// ---- 演示模式：自动环绕 + 事实字幕轮播 ----
+const FACTS=[
+ '16 个解剖图层 · <b>4,300,806</b> 个三角面 · 由 FPGA 扫描 1.39 亿个体素得到',
+ '等值面阈值是<b>运行时参数</b>，改它<b>不需要重新编译电路</b>',
+ '小器官改阈值 <b>20~90 ms</b> 出结果 · 心脏 <b>160 ms</b>',
+ 'Marching Cubes 内核 <b>II = 1</b> · 200 MHz · WNS <b>+0.261 ns</b>',
+ '体数据 <b>267.5 MB → 20.8 MB</b>（12.88×）· 端到端加速 <b>1.96×</b>',
+ 'Taubin 保体积平滑：body 二面角 <b>−63.9%</b>，体积变化 <b>+0.02%</b>'
+];
+let factIdx=0,factTimer=null,autoRotate=false,demoZoom0=1,demoT0=0,lastFrame=0,toastTimer=null;
+function showFact(){
+ const el=$('captionLine');if(!el)return;
+ el.style.opacity=0;
+ setTimeout(()=>{el.innerHTML=FACTS[factIdx%FACTS.length];factIdx++;el.style.opacity=1;},240);
+}
+function setDemo(on){
+ document.body.classList.toggle('demo',on);
+ autoRotate=on;
+ if(on){
+  demoZoom0=zoom;demoT0=performance.now();
+  if(!layers.some(l=>l.visible&&l.opacity>0))preset('combined');
+  showFact();clearInterval(factTimer);factTimer=setInterval(showFact,4800);
+ }else{clearInterval(factTimer);factTimer=null;}
+}
+function toast(msg){
+ const el=$('toast');if(!el)return;
+ el.textContent=msg;el.classList.add('show');
+ clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
+$('demo').onclick=()=>setDemo(true);
+$('demoExit').onclick=()=>setDemo(false);
+function frame(t){
+ const dt=Math.min(.05,(t-lastFrame)/1000||0);lastFrame=t;
+ if(autoRotate){yaw+=dt*.20;zoom=demoZoom0*(1+.028*Math.sin((t-demoT0)*.00045));draw();}
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+function refreshStats(){
+ $('statOrgans').textContent=layers.length;
+ const full=scene.triangles||layers.reduce((s,l)=>s+(l.full||l).triangles,0);
+ const disp=layers.reduce((s,l)=>s+l.triangles,0);
+ $('statFull').textContent=full.toLocaleString();
+ $('statFull').title='数据集在默认阈值下的完整网格总面数，不随阈值重建变化';
+ $('statTris').textContent=disp.toLocaleString();
+ $('statTris').title='当前加载的显示 LOD 合计 '+disp.toLocaleString()+' 面（16 层全部计入，含隐藏图层）；'
+  +'数据集完整网格 '+full.toLocaleString()+' 面';
+}
+refreshStats();
+window.addEventListener('keydown',e=>{const k=(e.key||'').toLowerCase();if(k==='d')setDemo(true);else if(k==='escape')setDemo(false);});
+$('loading').remove();fit();
+ const params=new URLSearchParams(location.search);
+ const requested=params.get('view');
+ if(params.get('demo')==='1')setTimeout(()=>setDemo(true),400);preset(['exterior','internal','skeleton','combined'].includes(requested)?requested:(scene.default_preset||'exterior'));
+})().catch(e=>{document.getElementById('error').textContent=e.message;const loading=document.getElementById('loading');if(loading)loading.textContent='加载失败，请查看左侧提示';console.error(e);});
+</script></html>

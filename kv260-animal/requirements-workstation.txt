@@ -1,0 +1,7 @@
+# Exact workstation versions used for the bundled data and display LOD.
+# Not for the ARM/PYNQ runtime. The workstation used Python 3.11.5.
+numpy==2.4.6
+scipy==1.17.1
+matplotlib==3.11.1
+vtk==9.7.0
+playwright==1.64.0
