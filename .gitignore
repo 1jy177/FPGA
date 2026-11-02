@@ -1,0 +1,27 @@
+# Vivado / Vitis 编译产物、缓存
+*.bit
+*.bin
+*.elf
+*.xsa
+*.hw
+*.jou
+*.log
+*.rpt
+*.zip
+*.tar
+*/.Xil/
+*/.vitis/
+*/.vivado/
+*/project.runs/
+*/project.srcs/
+*/project.cache/
+*/project.hw/
+*/build/
+*/debug/
+*/export/
+
+# VSCode缓存
+.vs/
+.vscode/
+__pycache__/
+*.pyc
